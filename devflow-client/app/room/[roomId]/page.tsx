@@ -14,7 +14,7 @@ export default function Home() {
   const localVersionRef = useRef<number>(0);
 
   const params = useParams();
-  const roomId : string | undefined= typeof params.roomId === 'string' ? params.roomId : params.roomId[0];
+  const roomId = typeof params.roomId === 'string' ? params.roomId : '';
 
   const pendingOps = useRef<Operation[]>([]);   //pending operations that have been sent but not yet acknowledged, for production use
   const isApplyingRemoteOp = useRef(false);
