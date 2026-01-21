@@ -1,4 +1,4 @@
-import { Client } from ".";
+import { Client } from "./index";
 import { Operation } from "./ot";
 
 interface Room {
