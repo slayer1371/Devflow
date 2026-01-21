@@ -1,5 +1,10 @@
-import { Client } from "./index";
+import { WebSocket } from "ws";
 import { Operation } from "./ot";
+
+export interface Client {
+    ws: WebSocket;
+    id: string;
+}
 
 interface Room {
     id:string,
