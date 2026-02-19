@@ -56,27 +56,35 @@ class RoomManager {
         
         this.rooms.set(newRoomId, newRoom);
         
-        // Persist initial state
-        await this.saveToRedis(newRoom);
-        
-        // Save to DB with relation
-        await prisma.room.create({
-            data: {
-                id: newRoomId,
-                name: newRoom.name,
-                language: newRoom.language,
-                content: "",
-                ownerId: userId,
-                privacy: "PUBLIC",
-                // Create participant entry for owner
-                participants: userId ? {
-                    create: {
-                        userId: userId,
-                        role: "OWNER"
-                    }
-                } : undefined
-            }
-        });
+        console.log(`[RoomManager] Creating room ${newRoomId} in memory. Persisting...`);
+
+        try {
+            // Persist initial state
+            await this.saveToRedis(newRoom);
+            console.log(`[RoomManager] Saved room ${newRoomId} to Redis.`);
+            
+            // Save to DB with relation
+            await prisma.room.create({
+                data: {
+                    id: newRoomId,
+                    name: newRoom.name,
+                    language: newRoom.language,
+                    content: "",
+                    ownerId: userId,
+                    privacy: "PUBLIC",
+                    // Create participant entry for owner
+                    participants: userId ? {
+                        create: {
+                            userId: userId,
+                            role: "OWNER"
+                        }
+                    } : undefined
+                }
+            });
+            console.log(`[RoomManager] Saved room ${newRoomId} to DB.`);
+        } catch (error) {
+            console.error(`[RoomManager] Failed to persist room ${newRoomId}:`, error);
+        }
         
         return newRoom;
     }
@@ -256,8 +264,9 @@ class RoomManager {
             setTimeout(() => {
                 const stillEmpty = this.rooms.get(roomId);
                 if(stillEmpty && stillEmpty.clients.size === 0) {   
-                    this.deleteRoom(roomId);
-                    console.log(`Room ${roomId} unloaded from memory due to inactivity.`);
+                    // ONLY remove from memory, do NOT delete from DB/Redis permanently here
+                    this.rooms.delete(roomId);
+                    console.log(`[RoomManager] Room ${roomId} unloaded from memory due to inactivity (persisted in DB).`);
                 }   
             }, 60000); // 1 minute buffer
         }
