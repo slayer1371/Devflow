@@ -179,7 +179,7 @@ export default function Home() {
     const { status } = useSession();
 
     if (status === "loading") {
-        return <LoadingOverlay status="Authenticating..." />;
+        return <LoadingOverlay status="Authenticating" />;
     }
 
     return <RoomPageContent roomId={roomId} />;

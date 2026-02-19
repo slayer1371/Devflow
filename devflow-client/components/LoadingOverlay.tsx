@@ -1,7 +1,7 @@
 import { useRouter } from "next/navigation";
 
 interface LoadingOverlayProps {
-    status: "Connecting" | "Connected" | "Disconnected" | "Access Denied";
+    status: "Connecting" | "Connected" | "Disconnected" | "Access Denied" | "Authenticating";
 }
 
 export function LoadingOverlay({ status }: LoadingOverlayProps) {
@@ -14,7 +14,7 @@ export function LoadingOverlay({ status }: LoadingOverlayProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/80 backdrop-blur-md transition-all duration-500">
             <div className="flex flex-col items-center p-8 rounded-3xl bg-white/5 border border-white/10 shadow-2xl max-w-sm w-full">
                 
-                {status === "Connecting" ? (
+                {(status === "Connecting" || status === "Authenticating") ? (
                     <div className="relative mb-6">
                         <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
                     </div>
@@ -27,16 +27,20 @@ export function LoadingOverlay({ status }: LoadingOverlayProps) {
                 )}
                 
                 <h3 className="text-xl font-bold text-white mb-2">
-                    {status === "Connecting" ? "Joining Room..." : "Connection Lost"}
+                    {status === "Connecting" ? "Joining Room..." : 
+                     status === "Authenticating" ? "Authenticating..." : 
+                     "Connection Lost"}
                 </h3>
                 
                 <p className="text-muted-foreground text-center text-sm mb-6">
                     {status === "Access Denied" 
-                        ? "You do not have permission to access this private room." 
+                        ? "You do not have permission to access this private room."
+                        : status === "Authenticating"
+                        ? "Verifying your session..."
                         : "Establishing a secure connection to the collaborative server..."}
                 </p>
                 
-                {status !== "Connecting" && (
+                {(status !== "Connecting" && status !== "Authenticating") && (
                     <button 
                         onClick={() => router.push('/')}
                         className="px-6 py-2 bg-white text-black text-sm font-bold rounded-full hover:scale-105 transition-transform"
