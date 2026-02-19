@@ -29,7 +29,7 @@ export default function LandingPage() {
         {/* Main Title */}
         <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-4 relative group cursor-default">
           <span className={`block transition-all duration-1000 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            ZERO_FRAME
+            DEV_FLOW
           </span>
           <span className="absolute -inset-2 bg-[#00ff9d]/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full pointer-events-none" />
         </h1>
