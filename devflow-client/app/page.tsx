@@ -3,24 +3,52 @@
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { UserHeader } from "@/components/UserHeader";
+import { RoomList } from "@/components/RoomList";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const router = useRouter();
-  const[rooms, setRooms] =  useState<Array<{id: string, name: string, userCount: number, createdAt: Date, language?: string}>>([]);
+  const { data: session, status } = useSession();
+  const [myRooms, setMyRooms] = useState<Array<{id: string, name: string, userCount: number, createdAt: Date, language?: string}>>([]);
   const [loading, setLoading] = useState(false);
-
+  
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
+  
   useEffect(() => {
-    fetch(`${API_URL}/api/rooms`)
-      .then(response => response.json())
-      .then(data => setRooms(data))
-      .catch(error => console.error("Error fetching rooms:", error));
-  }, []);
+    if (session?.user) {
+        const userId = (session.user as any).id;
+        fetch(`${API_URL}/api/my-rooms?userId=${userId}`)
+            .then(res => res.json())
+            .then(data => setMyRooms(data))
+            .catch(err => console.error("Error fetching my rooms:", err));
+    }
+  }, [session, API_URL]);
+  // Prevent rendering until session is determined (prevents flicker of "Guest" state if logged in)
+  if (status === "loading") {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-[#030712] text-white">
+             <div className="flex flex-col items-center gap-4">
+                 <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                 </svg>
+                 <span className="text-sm font-medium text-muted-foreground animate-pulse">Loading Workspace...</span>
+             </div>
+        </div>
+      );
+  }
+
+
 
   function createRoom() {
     setLoading(true);
-    axios.post(`${API_URL}/api/rooms`, { name: `Room ${Date.now()}` })
+    const userId = session?.user ? (session.user as any).id : undefined;
+    axios.post(`${API_URL}/api/rooms`, { 
+        name: `Untitled Project ${Math.floor(Math.random() * 1000)}`,
+        userId: userId
+    })
       .then(response => {
         const roomId = response.data.roomId;
         router.push(`/room/${roomId}`);
@@ -32,89 +60,74 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="p-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-12">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-linear-to-br from-blue-00 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl font-bold">df</span>
-              </div>
-              <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-100 to-rose-400">
-                DevFlow
-              </h1>
-            </div>
-            <p className="text-gray-400 text-lg">Real-time collaborative code editor</p>
-          </div>
+    <main className="min-h-screen relative overflow-hidden text-foreground">
+      
+      {/* Decorative Background Mesh is in layout.tsx */}
 
-          {/* Create Room Button */}
-          <div className="mb-12">
+      {/* User Header */}
+      {session && <UserHeader email={session.user?.email} />}
+
+      <div className="container mx-auto px-4 py-8 max-w-7xl pt-32">
+        
+        {/* Hero Section */}
+        <section className="text-center mb-20 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6 animate-[fadeIn_1s_ease-out]">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </span>
+                <span className="text-xs font-medium tracking-wide text-primary-foreground/80 uppercase">Free for everyone</span>
+            </div>
+            
+            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 relative">
+                <span className="absolute -inset-1 blur-3xl opacity-20 bg-gradient-to-r from-primary via-purple-500 to-secondary rounded-full"></span>
+                <span className="relative text-gradient drop-shadow-2xl">
+                    DevFlow
+                </span>
+            </h1>
+            
+            <p className="text-lg md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed font-light">
+                Collaborate on code in real-time with zero friction. <br className="hidden md:block"/>
+                <span className="text-white font-medium">Synced instantly. Secured by default.</span>
+            </p>
+
             <button 
-              onClick={createRoom}
-              disabled={loading}
-              className="px-8 py-4 bg-linear-to-r cursor-pointer from-blue-0 to-rose-600 text-white rounded-xl hover:from-blue-0 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+                onClick={createRoom}
+                disabled={loading}
+                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-black text-lg font-bold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
             >
-              <span className="text-xl">+</span>
-              {loading ? 'Creating Room...' : 'Create New Room'}
+                <div className="absolute inset-0 bg-gradient-to-r from-neutral-100 via-white to-neutral-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="relative flex items-center gap-2">
+                    {loading ? (
+                        <>
+                            <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Creating...
+                        </>
+                    ) : (
+                        <>
+                            Start Coding Now
+                            <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </>
+                    )}
+                </span>
             </button>
-          </div>
+        </section>
 
-          {/* Rooms Section */}
-          {rooms.length > 0 && (
-            <div>
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-2">Active Rooms</h2>
-                <p className="text-gray-400">{rooms.length} room{rooms.length !== 1 ? 's' : ''} available</p>
-              </div>
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {rooms.map((room) => (
-                  <div 
-                    key={room.id}
-                    onClick={() => router.push(`/room/${room.id}`)}
-                    className="group cursor-pointer"
-                  >
-                    <div className="p-6 bg-gray-800/50 backdrop-blur rounded-xl border border-gray-700 hover:border-blue-500 hover:bg-gray-800/80 transition-all duration-300 h-full hover:shadow-lg hover:shadow-blue-500/10"
-                    >
-                      <div className="flex flex-col justify-between h-full">
-                        <div>
-                          <h3 className="text-white font-semibold text-lg mb-3 group-hover:text-blue-400 transition-colors">
-                            {room.name}
-                          </h3>
-                          <div className="flex items-center gap-2 text-gray-400 text-sm mb-4">
-                            <span className="px-3 py-1 bg-gray-700 rounded-full text-xs font-mono">
-                              {room.language || 'javascript'}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              {room.userCount} user{room.userCount !== 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-gray-500 text-xs">
-                          {new Date(room.createdAt).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Content Area */}
+        <section className="relative z-0 min-h-[400px]">
+             <RoomList 
+                rooms={myRooms} 
+                title="Your Projects"
+                emptyMessage="You haven't created any projects yet. Click 'Start Coding Now' to create one."
+            />
+        </section>
 
-          {/* Empty State */}
-          {rooms.length === 0 && !loading && (
-            <div className="text-center py-16">
-              <div className="text-gray-400 mb-4">
-                <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </div>
-              <p className="text-gray-400 text-lg">No rooms yet. Create one to get started!</p>
-            </div>
-          )}
-        </div>
       </div>
-    </div>
+    </main>
   );
 }

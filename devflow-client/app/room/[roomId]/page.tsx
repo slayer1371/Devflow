@@ -1,244 +1,186 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Editor from '@monaco-editor/react';
-import { transform, Operation } from "../../../lib/ot"
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useCollaborativeRoom } from "@/hooks/useCollaborativeRoom";
+import { RoomEditor } from "@/components/RoomEditor";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
+import { ShareModal } from "@/components/ShareModal";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
-export default function Home() {
-  const [socket, setsocket] = useState<WebSocket | null>(null);
-  const [code, setCode] = useState<string>("// Loading");
-  const [connectionStatus, setConnectionStatus] = useState<"Connecting"|"Connected"|"Disconnected">("Connecting");
-  const [clientId, setClientId] = useState<string>("");
-  const [serverVersion, setServerVersion] = useState<number>(0);
-  const localVersionRef = useRef<number>(0);
+import { AccessDenied } from "@/components/AccessDenied";
 
-  const params = useParams();
-  const roomId = typeof params.roomId === 'string' ? params.roomId : '';
+function RoomPageContent({ roomId }: { roomId: string }) {
+  const router = useRouter();
+  
+  const { 
+      code, 
+      connectionStatus, 
+      clientId, 
+      serverVersion, 
+      handleEditorChange 
+  } = useCollaborativeRoom(roomId);
 
-  const pendingOps = useRef<Operation[]>([]);   //pending operations that have been sent but not yet acknowledged, for production use
-  const isApplyingRemoteOp = useRef(false);
-  const currentCodeRef = useRef<string>("// Loading");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  const handleRemoteOperation = (op: Operation) => {
-  isApplyingRemoteOp.current = true;
-  
-  // Transform pending operations against this remote operation
-  pendingOps.current = pendingOps.current.map(pendingOp => 
-    transform(pendingOp, op)
-  );
-  
-  setCode(prevCode => {
-    let newCode = prevCode;
-    if (op.type === 'insert') {
-      newCode = prevCode.slice(0, op.position) + 
-             op.text + 
-             prevCode.slice(op.position);
-    } else if (op.type === 'delete') {
-      newCode = prevCode.slice(0, op.position) + 
-             prevCode.slice(op.position + op.length);
-    } else if (op.type === 'replace') {
-      newCode = prevCode.slice(0, op.position) + 
-             op.insertText + 
-             prevCode.slice(op.position + op.deleteLength);
-    }
-    currentCodeRef.current = newCode;
-    return newCode;
-  });
-  
-  setServerVersion(op.version);
-  
-  setTimeout(() => {
-    isApplyingRemoteOp.current = false;
-  }, 0);
-};
+  if (connectionStatus === "Access Denied") {
+      return <AccessDenied />;
+  }
 
-  useEffect(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000';
-    console.log('Connecting to:', wsUrl);
+  if (connectionStatus === "Connecting") {
+      return <LoadingOverlay status={connectionStatus} />;
+  }
   
-    const newSocket = new WebSocket(wsUrl);  
+  return (
+    <div className="h-screen w-full flex flex-col bg-[#030712] text-foreground overflow-hidden">
       
-    newSocket.onopen = () => {
-      console.log("WebSocket connection established");
-      setsocket(newSocket);
-      setConnectionStatus("Connected");
-    
+      {/* Top Navigation Bar */}
+      <header className="h-14 border-b border-white/5 bg-[#030712]/50 backdrop-blur-md flex items-center justify-between px-4 z-10 shrink-0">
+        <div className="flex items-center gap-4">
+             <button 
+                onClick={() => router.push('/')}
+                className="p-2 hover:bg-white/5 rounded-full transition-colors group"
+                title="Back to Dashboard"
+             >
+                <svg className="w-5 h-5 text-muted-foreground group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+             </button>
+             
+             <div className="w-px h-6 bg-white/10 mx-1" />
 
-    newSocket.send(JSON.stringify({
-        type : 'join-room',
-        roomId: roomId
-    }))
-
-    };
-    newSocket.onerror = (error) => {
-      console.error("WebSocket error: ", error);
-      setConnectionStatus("Disconnected");
-    }
-    
-    newSocket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-
-      if (message.type === 'init') {
-        setCode(message.content);
-        currentCodeRef.current = message.content;
-        setServerVersion(message.version);
-        localVersionRef.current = message.version;
-        setClientId(message.clientId);
-      }else if (message.type === 'operation') {
-        console.log("Received remote operation:", message.operation);
-        handleRemoteOperation(message.operation);
-      }
-      else if(message.type === 'error') {
-        console.error("Error from server:", message.message);
-      }
-    }
-    
-    newSocket.onclose = () => {
-      console.log("WebSocket connection closed");
-      setConnectionStatus("Disconnected");
-    }
-
-    return () => {
-      newSocket.close();
-    }
-  }, [roomId]);
-
-
-
-  const handleEditorChange = (newValue: string | undefined) => {
-    if (newValue === undefined || !socket || isApplyingRemoteOp.current) {
-      return;
-    }
-
-    const oldCode = currentCodeRef.current;
-    const newCode = newValue;
-
-    const op = generateOperation(oldCode, newCode, serverVersion);
-    
-    if(op) {
-      console.log("Sending operation", op);
-
-      socket.send(JSON.stringify({ 
-        type: 'operation', 
-        roomId: roomId, 
-        operation: op 
-      }));
-
-      pendingOps.current.push(op);
-      setCode(newCode);
-      currentCodeRef.current = newCode;
-      // Increment server version after sending so next operation uses correct version
-      setServerVersion(prev => prev + 1);
-    }
-  }
-  
-  const generateOperation = (oldValue: string, newValue: string, serverVersion: number): Operation | null => {
-    let i = 0;
-    // Finding the first differing index
-    while (i < oldValue.length && i < newValue.length && oldValue[i] === newValue[i]) {
-      i++;
-    }
-
-    let oldEnd = oldValue.length;
-    let newEnd = newValue.length;
-
-    //finding the last differing index
-    while( oldEnd > i && newEnd > i && oldValue[oldEnd - 1] === newValue[newEnd - 1]) {
-      oldEnd--;
-      newEnd--;
-    }
-    
-    const deletedText = oldValue.slice(i, oldEnd);
-    const insertedText = newValue.slice(i, newEnd);
-
-    //replace - both delete and insert
-    if(deletedText.length > 0 && insertedText.length > 0) {
-      return {
-      type: 'replace',
-      position: i,
-      deleteLength: deletedText.length,
-      insertText: insertedText,
-      version: serverVersion
-    };
-    }
-
-    //inserted text only
-    if(insertedText.length > 0) {
-      return {
-      type: 'insert',
-      position: i,
-      text: insertedText,
-      version: serverVersion
-    };
-    }
-
-    //deleted text only
-    if(deletedText.length > 0 ) {
-      return {
-      type: 'delete',
-      position: i,
-      length: deletedText.length,
-      version: serverVersion
-    };
-    }
-
-    return null;
-  }
-
-
-  if (!socket || connectionStatus !== "Connected") {
-    return (
-      <div className="p-8 bg-gray-900 min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">
-          {connectionStatus === "Connecting" ? "Connecting to room..." : "Disconnected"}
+             <h1 className="font-semibold text-sm flex items-center gap-2">
+                <span className="text-muted-foreground">Room:</span>
+                <span className="font-mono text-primary">{roomId}</span>
+             </h1>
         </div>
-      </div>
-    );
-  }
-  
-    return (
-    <div className="p-8 bg-gray-900 min-h-screen">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Room - {roomId}</h1>
-          <div className="flex items-center gap-4">
-            <div className={`px-4 py-2 rounded-full font-semibold ${
-              connectionStatus === "Connected" ? "bg-green-500 text-white" : 
-              connectionStatus === "Connecting" ? "bg-yellow-500 text-black" : 
-              "bg-red-500 text-white"
-            }`}>
-              {connectionStatus}
+
+        <div className="flex items-center gap-4">
+            <ConnectionStatus status={connectionStatus} />
+            
+            <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                {clientId ? `User ${clientId.substring(0,4)}` : 'You'}
             </div>
-            <div className="text-gray-400 text-sm">
-              Client ID: {clientId} | Version: {serverVersion}
+            
+             <button 
+                onClick={() => setIsShareModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1.5 text-xs font-bold rounded-full transition-all shadow-[0_0_15px_-3px_var(--primary)]"
+             >
+                Share
+             </button>
+        </div>
+      </header>
+
+      {/* Main Workspace */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* Editor Area */}
+        <main className="flex-1 flex flex-col relative min-w-0">
+            {/* Toolbar / Tabs */}
+            <div className="h-10 bg-[#0a0a0a] border-b border-white/5 flex items-end px-2 gap-1 shrink-0">
+                <div className="px-4 py-2 bg-[#1e1e1e] border-t border-l border-r border-white/10 rounded-t-lg text-xs font-medium text-white flex items-center gap-2 relative top-[1px]">
+                    <svg className="w-3 h-3 text-yellow-500" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                    main.js
+                </div>
             </div>
-          </div>
-        </div>
 
-        <div className="border-2 border-gray-700 rounded-lg overflow-hidden shadow-2xl">
-          <Editor
-            height="600px"
-            defaultLanguage="javascript"
-            theme="vs-dark"
-            value={code}
-            onChange={handleEditorChange}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              lineNumbers: 'on',
-              roundedSelection: false,
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
-          />
-        </div>
+            {/* Monaco Editor Container */}
+            <div className="flex-1 relative bg-[#1e1e1e]">
+                 <RoomEditor 
+                    code={code} 
+                    onChange={handleEditorChange} 
+                />
+            </div>
+        </main>
 
-        <div className="mt-4 text-gray-400 text-sm">
-          <p>💡 Open this page in multiple tabs to see real-time collaboration!</p>
-          <p>🔄 Operations are automatically synced using Operational Transformation</p>
-        </div>
+        {/* Sidebar (Collapsible) */}
+        <aside className={cn(
+            "w-72 border-l border-white/5 bg-[#030712]/50 backdrop-blur-md flex flex-col transition-all duration-300 ease-in-out shrink-0",
+            !isSidebarOpen && "w-0 border-none opacity-0 overflow-hidden"
+        )}>
+            <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Participants</h3>
+                <span className="px-2 py-0.5 rounded bg-white/10 text-[10px] text-white">Online</span>
+            </div>
+            
+            <div className="p-4 flex-1 overflow-y-auto">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-lg">
+                        You
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-white">Current User</p>
+                        <p className="text-xs text-green-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                            Active
+                        </p>
+                    </div>
+                </div>
+                
+                 {/* Placeholder for other users */}
+                 <div className="text-xs text-muted-foreground text-center mt-8 italic">
+                    Waiting for others to join...
+                 </div>
+            </div>
+            
+            <div className="p-4 border-t border-white/5">
+                <div className="text-[10px] text-muted-foreground text-center">
+                    Version: {serverVersion}
+                </div>
+            </div>
+        </aside>
+
       </div>
+      
+      {/* Floating Sidebar Toggle (if closed) */}
+      {!isSidebarOpen && (
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="absolute right-4 bottom-4 p-3 bg-primary rounded-full shadow-lg hover:scale-110 transition-transform z-50 text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+          </button>
+      )}
+      
+       {/* Explicit Sidebar Toggle (in header or overlaid) */}
+       {isSidebarOpen && (
+        <button 
+             onClick={() => setIsSidebarOpen(false)}
+             className="absolute right-4 top-16 p-1.5 bg-white/5 hover:bg-white/10 rounded-md text-muted-foreground z-20"
+             title="Collapse Sidebar"
+        >
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+        </button>  
+       )}
+       
+       <ShareModal 
+            roomId={roomId} 
+            isOpen={isShareModalOpen} 
+            onClose={() => setIsShareModalOpen(false)} 
+       />
+
     </div>
   );
+}
+
+export default function Home() {
+    const params = useParams();
+    const roomId = typeof params.roomId === 'string' ? params.roomId : '';
+    const { status } = useSession();
+
+    if (status === "loading") {
+        return <LoadingOverlay status="Authenticating..." />;
+    }
+
+    return <RoomPageContent roomId={roomId} />;
 }
