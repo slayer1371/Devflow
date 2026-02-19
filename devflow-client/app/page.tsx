@@ -1,133 +1,73 @@
 "use client";
 
-import axios from "axios";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { UserHeader } from "@/components/UserHeader";
-import { RoomList } from "@/components/RoomList";
-import { cn } from "@/lib/utils";
 
-export default function Home() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [myRooms, setMyRooms] = useState<Array<{id: string, name: string, userCount: number, createdAt: Date, language?: string}>>([]);
-  const [loading, setLoading] = useState(false);
-  
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-  
+export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    if (session?.user) {
-        const userId = (session.user as any).id;
-        fetch(`${API_URL}/api/my-rooms?userId=${userId}`)
-            .then(res => res.json())
-            .then(data => setMyRooms(data))
-            .catch(err => console.error("Error fetching my rooms:", err));
-    }
-  }, [session, API_URL]);
-  // Prevent rendering until session is determined (prevents flicker of "Guest" state if logged in)
-  if (status === "loading") {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-[#030712] text-white">
-             <div className="flex flex-col items-center gap-4">
-                 <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                 </svg>
-                 <span className="text-sm font-medium text-muted-foreground animate-pulse">Loading Workspace...</span>
-             </div>
-        </div>
-      );
-  }
-
-
-
-  function createRoom() {
-    setLoading(true);
-    const userId = session?.user ? (session.user as any).id : undefined;
-    axios.post(`${API_URL}/api/rooms`, { 
-        name: `Untitled Project ${Math.floor(Math.random() * 1000)}`,
-        userId: userId
-    })
-      .then(response => {
-        const roomId = response.data.roomId;
-        router.push(`/room/${roomId}`);
-      })
-      .catch(error => {
-        console.error("Error creating room:", error);
-      })
-      .finally(() => setLoading(false));
-  }
+    setMounted(true);
+  }, []);
 
   return (
-    <main className="min-h-screen relative overflow-hidden text-foreground">
+    <main className="min-h-screen relative bg-[#030712] text-white overflow-hidden font-mono selection:bg-[#00ff9d] selection:text-black">
       
-      {/* Decorative Background Mesh is in layout.tsx */}
+      {/* Background Elements */}
+      <div className="fixed inset-0 bg-grid z-0 pointer-events-none" />
+      <div className="fixed inset-0 scanline z-10 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-[#030712]/50 to-[#030712] z-0 pointer-events-none" />
 
-      {/* User Header */}
-      {session && <UserHeader email={session.user?.email} />}
-
-      <div className="container mx-auto px-4 py-8 max-w-7xl pt-32">
+      {/* Hero Content */}
+      <div className="relative z-20 flex flex-col items-center justify-center min-h-screen px-4">
         
-        {/* Hero Section */}
-        <section className="text-center mb-20 relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6 animate-[fadeIn_1s_ease-out]">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-                <span className="text-xs font-medium tracking-wide text-primary-foreground/80 uppercase">Free for everyone</span>
-            </div>
-            
-            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 relative">
-                <span className="absolute -inset-1 blur-3xl opacity-20 bg-gradient-to-r from-primary via-purple-500 to-secondary rounded-full"></span>
-                <span className="relative text-gradient drop-shadow-2xl">
-                    DevFlow
-                </span>
-            </h1>
-            
-            <p className="text-lg md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-                Collaborate on code in real-time with zero friction. <br className="hidden md:block"/>
-                <span className="text-white font-medium">Synced instantly. Secured by default.</span>
-            </p>
+        {/* Status Badge */}
+        <div className={`mb-8 px-4 py-1 border border-[#00ff9d]/30 bg-[#00ff9d]/10 rounded-full text-[#00ff9d] text-xs tracking-[0.2em] transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+          SYSTEM: ONLINE
+        </div>
 
-            <button 
-                onClick={createRoom}
-                disabled={loading}
-                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-black text-lg font-bold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-            >
-                <div className="absolute inset-0 bg-gradient-to-r from-neutral-100 via-white to-neutral-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative flex items-center gap-2">
-                    {loading ? (
-                        <>
-                            <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Creating...
-                        </>
-                    ) : (
-                        <>
-                            Start Coding Now
-                            <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                        </>
-                    )}
-                </span>
-            </button>
-        </section>
+        {/* Main Title */}
+        <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-4 relative group cursor-default">
+          <span className={`block transition-all duration-1000 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            ZERO_FRAME
+          </span>
+          <span className="absolute -inset-2 bg-[#00ff9d]/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full pointer-events-none" />
+        </h1>
 
-        {/* Content Area */}
-        <section className="relative z-0 min-h-[400px]">
-             <RoomList 
-                rooms={myRooms} 
-                title="Your Projects"
-                emptyMessage="You haven't created any projects yet. Click 'Start Coding Now' to create one."
-            />
-        </section>
+        <p className={`text-muted-foreground text-sm md:text-base max-w-md text-center mb-12 tracking-widest uppercase transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          Collaborative Development Environment // v2.0
+        </p>
+
+        {/* Action Button */}
+        <Link 
+          href="/dashboard"
+          className={`group relative px-8 py-4 bg-transparent overflow-hidden border border-[#00ff9d] text-[#00ff9d] font-bold tracking-wider hover:text-black transition-colors duration-300 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+          style={{ transitionDelay: '500ms' }}
+        >
+          <span className="relative z-10 flex items-center gap-2">
+            INITIALIZE_SYSTEM
+            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 12h17" />
+            </svg>
+          </span>
+          <div className="absolute inset-0 bg-[#00ff9d] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
+        </Link>
+
+
+        {/* Footer Data */}
+        <div className={`absolute bottom-8 left-0 right-0 flex justify-between px-8 text-[10px] text-[#00ff9d]/40 tracking-widest transition-opacity duration-1000 delay-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+          <div>
+            LAT: 32.4421<br/>
+            LON: -112.992
+          </div>
+          <div className="text-right">
+            MEM: 64TB<br/>
+            CPU: QUANTUM
+          </div>
+        </div>
 
       </div>
+      
     </main>
   );
 }
