@@ -9,7 +9,7 @@
     "prebuild": "cd ../packages/shared && npm run build",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "mkdir -p node_modules/@devflow && ln -sf ../../../packages/shared node_modules/@devflow/shared || echo 'Symlink failed'"
+    "postinstall": "mkdir -p node_modules/@devflow && ln -sf ../../../packages/shared node_modules/@devflow/shared && npx prisma generate || echo 'Postinstall failed'"
   },
   "keywords": [],
   "author": "",
