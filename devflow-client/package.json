@@ -9,11 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@devflow/shared": "file:../packages/shared",
     "@monaco-editor/react": "^4.7.0",
     "axios": "^1.13.2",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.34.2",
     "next": "16.1.4",
+    "next-auth": "^4.24.13",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -14,15 +14,24 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@devflow/shared": "file:../packages/shared",
+    "@prisma/client": "^6.19.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",
     "@types/ws": "^8.18.1",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "nodemon": "^3.1.11",
+    "redis": "^5.11.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "dotenv": "^17.3.1",
+    "prisma": "^6.19.2"
   }
 }

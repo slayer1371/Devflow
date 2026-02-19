@@ -1,0 +1,17 @@
+{
+  "name": "devflow-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "devflow-client",
+    "devflow-server",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"cd devflow-server && npm run dev\" \"cd devflow-client && npm run dev\"",
+    "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
