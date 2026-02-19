@@ -1,10 +1,12 @@
 import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
-import { Operation, transform } from './ot';
+import { Operation, transform } from "@devflow/shared";
 import { config } from './config';
-import { Room, RoomManager } from './room';
-import type { Client } from './room';
+import { Room, RoomManager } from './services/room.service';
+import type { Client } from './services/room.service';
+import authRouter from './routes/auth.routes';
+import { createRoomRouter } from './routes/room.routes';
 
 const app = express();
 app.use(cors({
@@ -13,17 +15,23 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+const httpServer = app.listen(config.port, () => {
+    console.log(`🚀 HTTP Server running on http://localhost:${config.port}`);
+    console.log('🔌 WebSocket server ready');
+});
+
+const wss = new WebSocketServer({ server: httpServer });
+// Instantiate RoomManager before routes so it's shared
+const roomManager = new RoomManager();
+
+// Routes
+app.use('/api', authRouter);
+app.use('/api', createRoomRouter(roomManager));
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', clients: wss.clients.size });
 });
-
-const httpServer = app.listen(config.port);
-
-const wss = new WebSocketServer({ server: httpServer });
-const roomManager = new RoomManager();
-
-console.log(`🚀 HTTP Server running on http://localhost:${config.port}`);
-console.log('🔌 WebSocket server ready');
 
 const clients = new Map<WebSocket, Client>()
 const clientRooms = new Map<string, string>(); // clientId -> roomId
@@ -36,18 +44,18 @@ wss.on('connection', (ws) => {
     console.log(`✅ New client connected (Total: ${wss.clients.size})`);
 
     ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
-  });
+        console.error('WebSocket error:', error);
+    });
 
-  ws.on('message', (data) => {
+    ws.on('message', async (data) => {
     try {
         const message = JSON.parse(data.toString());
         
         if (message.type === 'join-room') {
-        handleJoinRoom(message.roomId, ws, clientId);
+            await handleJoinRoom(message.roomId, ws, clientId, message.userId);
         } 
         else if (message.type === 'operation') {
-        handleOperation(message.operation, ws, message.roomId, roomManager);
+            await handleOperation(message.operation, ws, message.roomId, roomManager);
         }
     }catch (error) {
         console.error('Error processing message:', error);
@@ -62,29 +70,29 @@ wss.on('connection', (ws) => {
         roomManager.removeClientFromRoom(roomId, client.id);
         clientRooms.delete(client.id);
 
-        const room = roomManager.getRoom(roomId);
-        if(room) {
-            room.clients.forEach((otherClient) => {
-                if(otherClient.ws.readyState === WebSocket.OPEN) {
-                    otherClient.ws.send(JSON.stringify({
-                        type: 'user-left',
-                        roomId: roomId,
-                        userId: client.id
-                    }));
-                }
-            })
-        }
+        roomManager.getRoom(roomId).then(room => {
+             if(room) {
+                room.clients.forEach((otherClient) => {
+                    if(otherClient.ws.readyState === WebSocket.OPEN) {
+                        otherClient.ws.send(JSON.stringify({
+                            type: 'user-left',
+                            roomId: roomId,
+                            userId: client.id
+                        }));
+                    }
+                })
+            }
+        });
+       
         }
         clients.delete(ws);
     }
     console.log(`❌ Client disconnected (Total: ${wss.clients.size})`);
     });
-
-// ws.send('Welcome to the WebSocket server!');
 })
 
-function handleOperation(op: Operation, ws: WebSocket,roomId: string, roomManager: RoomManager) {
-    const room = roomManager.getRoom(roomId);
+async function handleOperation(op: Operation, ws: WebSocket,roomId: string, roomManager: RoomManager) {
+    const room = await roomManager.getRoom(roomId);
     if(!room) {
         console.error(`Room ${roomId} not found for operation`);
         return;
@@ -116,7 +124,9 @@ function handleOperation(op: Operation, ws: WebSocket,roomId: string, roomManage
       client.ws.send(broadcast);
     }
   });
-
+  
+  // Persist to Redis asynchronously
+  roomManager.saveToRedis(room).catch(err => console.error("Redis save error:", err));
 }
 
 function applyOperationToRoom(room : Room, op: Operation) {
@@ -138,17 +148,29 @@ function applyOperationToRoom(room : Room, op: Operation) {
   }
 }
 
-function handleJoinRoom(roomId: string, ws: WebSocket, clientId: string) {
-  let room = roomManager.getRoom(roomId);
+async function handleJoinRoom(roomId: string, ws: WebSocket, clientId: string, userId?: string) {
+  let room = await roomManager.getRoom(roomId);
   
   if (!room) {
-      console.log(`Room ${roomId} not found, cannot join`);
-      ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Room not found'
-        }));
-        return;
-    }
+       console.log(`Room ${roomId} not found.`);
+       ws.send(JSON.stringify({
+           type: 'error',
+           message: 'Room not found'
+       }));
+       return;
+  }
+
+  // Check Privacy
+  if (room.privacy === 'PRIVATE') {
+      if (!userId || !room.participants.has(userId)) {
+          console.log(`Access denied for user ${userId} to room ${roomId}`);
+          ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Access denied: Private room'
+          }));
+          return;
+      }
+  }
     
     const client = clients.get(ws);
     if (!client) return;
@@ -161,12 +183,12 @@ function handleJoinRoom(roomId: string, ws: WebSocket, clientId: string) {
   
   // Send initial room state
   ws.send(JSON.stringify({
-    type: 'init',
-    roomId: roomId,
-    content: room.documentContent,
-    version: room.version,
-    clientId: clientId,
-    language: room.language
+      type: 'init',
+      roomId: roomId,
+      content: room.documentContent,
+      version: room.version,
+      clientId: clientId,
+      language: room.language
   }));
   
   // Notify others in room
@@ -175,21 +197,9 @@ function handleJoinRoom(roomId: string, ws: WebSocket, clientId: string) {
       otherClient.ws.send(JSON.stringify({
         type: 'user-joined',
         roomId: roomId,
-        userId: clientId
+        userId: clientId, // This is the socket client ID, not user auth ID. Kept for cursors.
+        userAuthId: userId
       }));
     }
   });
 }
-
-app.get('/api/rooms', (req, res) => {
-     // Return roomManager.listActiveRooms()
-        res.json(roomManager.listActiveRooms());
-   });
-   
-   app.post('/api/rooms', (req, res) => {
-     // Create room, return { roomId, name }
-        const { name, language } = req.body || {};
-        const roomName = name || `Room ${Date.now()}`;
-        const newRoom = roomManager.createRoom(roomName, language || "javascript");
-        res.json({ roomId: newRoom.id, name: newRoom.name });
-   });
