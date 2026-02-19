@@ -36,7 +36,7 @@ export const getMyRoomsHandler = (roomManager: RoomManager) => async (req: Reque
             orderBy: { createdAt: 'desc' }
         });
         
-        const rooms = participants.map(p => ({
+        const rooms = participants.map((p: any) => ({
             id: p.room.id,
             name: p.room.name,
             language: p.room.language || 'javascript',
@@ -46,7 +46,8 @@ export const getMyRoomsHandler = (roomManager: RoomManager) => async (req: Reque
         }));
         
         // Update user count from active rooms using the injected roomManager
-        rooms.forEach(room => {
+        // Update user count from active rooms using the injected roomManager
+        rooms.forEach((room: any) => {
             const active = roomManager.listActiveRooms().find(r => r.id === room.id);
             if (active) {
                 room.userCount = active.userCount;

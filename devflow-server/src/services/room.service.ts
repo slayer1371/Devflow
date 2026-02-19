@@ -152,7 +152,7 @@ class RoomManager {
                 where: { roomId: roomId },
                 select: { userId: true }
             });
-            room.participants = new Set(participants.map(p => p.userId));
+            room.participants = new Set(participants.map((p: { userId: string }) => p.userId));
 
             this.rooms.set(roomId, room);
             await this.saveToRedis(room); // Re-hydrate Redis
