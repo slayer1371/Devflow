@@ -38,59 +38,69 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-gray-800/50 backdrop-blur rounded-2xl border border-gray-700 p-8 shadow-xl">
+    <div className="min-h-screen relative bg-[#030712] flex items-center justify-center p-4 overflow-hidden font-mono text-white">
+      {/* Background Elements */}
+      <div className="fixed inset-0 bg-grid z-0 pointer-events-none" />
+      <div className="fixed inset-0 scanline z-10 pointer-events-none" />
+      
+      <div className="max-w-md w-full relative z-20 bg-[#030712]/60 backdrop-blur-xl rounded-none border border-[#00ff9d]/20 p-8 shadow-[0_0_50px_-12px_rgba(0,255,157,0.1)]">
+        {/* Decorative corner markers */}
+        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#00ff9d]" />
+        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#00ff9d]" />
+        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[#00ff9d]" />
+        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[#00ff9d]" />
+
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-100 to-rose-400 mb-2">
-            Welcome Back
+          <h1 className="text-3xl font-black tracking-tighter text-white mb-2">
+            SYSTEM_LOGIN
           </h1>
-          <p className="text-gray-400">Sign in or create an account automatically</p>
+          <p className="text-[#00ff9d]/60 text-xs tracking-widest uppercase">Identify to proceed</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+            <div className="p-3 bg-red-900/20 border border-red-500/50 text-red-500 text-xs font-bold text-center tracking-wide">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Email Address
+            <label className="block text-xs font-bold text-[#00ff9d]/80 mb-2 uppercase tracking-wider">
+              Email // ID
             </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-              placeholder="you@example.com"
+              className="w-full px-4 py-3 bg-[#030712]/50 border border-[#00ff9d]/20 text-white placeholder-white/20 focus:outline-none focus:border-[#00ff9d] focus:shadow-[0_0_15px_-3px_rgba(0,255,157,0.3)] transition-all font-mono"
+              placeholder="user@devflow.system"
             />
           </div>
 
           <div>
-             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Name (Optional - for new accounts)
+             <label className="block text-xs font-bold text-[#00ff9d]/80 mb-2 uppercase tracking-wider">
+              Display Name <span className="text-white/30 text-[10px] normal-case">(Optional for new users)</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-              placeholder="Your Name"
+              className="w-full px-4 py-3 bg-[#030712]/50 border border-[#00ff9d]/20 text-white placeholder-white/20 focus:outline-none focus:border-[#00ff9d] focus:shadow-[0_0_15px_-3px_rgba(0,255,157,0.3)] transition-all font-mono"
+              placeholder="OPERATOR_NAME"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Password
+            <label className="block text-xs font-bold text-[#00ff9d]/80 mb-2 uppercase tracking-wider">
+              Access Key
             </label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              className="w-full px-4 py-3 bg-[#030712]/50 border border-[#00ff9d]/20 text-white placeholder-white/20 focus:outline-none focus:border-[#00ff9d] focus:shadow-[0_0_15px_-3px_rgba(0,255,157,0.3)] transition-all font-mono"
               placeholder="••••••••"
             />
           </div>
@@ -98,9 +108,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-linear-to-r from-blue-500 to-rose-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-rose-700 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 bg-[#00ff9d] text-black font-bold uppercase tracking-widest hover:bg-[#00ff9d]/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_-5px_rgba(0,255,157,0.5)]"
           >
-            {loading ? "Signing in..." : "Sign In / Register"}
+            {loading ? "AUTHENTICATING..." : "INITIALIZE SESSION"}
           </button>
         </form>
       </div>

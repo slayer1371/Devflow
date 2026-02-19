@@ -16,14 +16,15 @@ interface RoomListProps {
 export function RoomList({ rooms, title, emptyMessage }: RoomListProps) {
     if (rooms.length === 0) {
         return (
-            <div className="text-center py-20 px-6 rounded-3xl glass border-dashed border-white/10 flex flex-col items-center">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 shadow-inner border border-white/5">
-                <svg className="w-10 h-10 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="text-center py-20 px-6 bg-[#030712]/40 border border-dashed border-[#00ff9d]/20 flex flex-col items-center">
+              <div className="w-20 h-20 bg-[#00ff9d]/5 rounded-full flex items-center justify-center mb-6 border border-[#00ff9d]/20 relative">
+                <div className="absolute inset-0 border border-[#00ff9d] opacity-20 rounded-full animate-ping" />
+                <svg className="w-10 h-10 text-[#00ff9d]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
-              <h3 className="text-xl font-medium text-white mb-2">No Rooms Found</h3>
-              <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+              <h3 className="text-xl font-bold text-[#00ff9d] mb-2 uppercase tracking-wide">Signal Lost</h3>
+              <p className="text-muted-foreground text-sm max-w-xs mx-auto font-mono">
                   {emptyMessage}
               </p>
             </div>
@@ -32,13 +33,14 @@ export function RoomList({ rooms, title, emptyMessage }: RoomListProps) {
 
     return (
         <div className="animate-[slideUp_0.5s_ease-out_forwards]">
-            <div className="flex items-end justify-between mb-8 px-2">
+            <div className="flex items-end justify-between mb-8 px-2 border-b border-[#00ff9d]/20 pb-4">
                 <div>
-                    <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+                    <h2 className="text-2xl font-black text-white tracking-widest uppercase flex items-center gap-4">
+                        <span className="w-3 h-3 bg-[#00ff9d]" />
                         {title}
                     </h2>
-                    <p className="text-muted-foreground mt-1">
-                        {rooms.length} active session{rooms.length !== 1 ? 's' : ''}
+                    <p className="text-[#00ff9d]/60 mt-1 text-xs font-mono uppercase tracking-wider pl-7">
+                        {rooms.length} active session{rooms.length !== 1 ? 's' : ''} detected
                     </p>
                 </div>
             </div>

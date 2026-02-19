@@ -7,19 +7,19 @@ interface UserHeaderProps {
 export function UserHeader({ email }: UserHeaderProps) {
     return (
         <div className="absolute top-6 right-6 z-50 animate-[fadeIn_1s_ease-out]">
-            <div className="flex items-center gap-4 p-2 pl-4 pr-2 rounded-full glass">
+            <div className="flex items-center gap-4 p-2 pl-4 pr-2 bg-[#030712]/80 backdrop-blur-md border border-[#00ff9d]/20 transition-all hover:border-[#00ff9d]/50">
               <div className="flex flex-col items-end mr-2">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Logged in as</span>
-                  <span className="text-sm font-bold text-white max-w-[150px] truncate">{email}</span>
+                  <span className="text-[10px] text-[#00ff9d] uppercase tracking-widest font-bold">Operator</span>
+                  <span className="text-xs font-mono text-white max-w-[150px] truncate">{email}</span>
               </div>
               
-              <div className="h-8 w-[1px] bg-white/10"></div>
+              <div className="h-8 w-[1px] bg-[#00ff9d]/20"></div>
 
               <button 
                 onClick={() => signOut()}
-                className="px-4 py-2 text-sm font-medium bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-white border border-white/10 rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
+                className="px-4 py-2 text-xs font-bold font-mono bg-[#00ff9d]/10 hover:bg-[#00ff9d] hover:text-black text-[#00ff9d] border border-[#00ff9d]/20 transition-all duration-300 uppercase tracking-wider"
               >
-                  Sign Out
+                  Disconnect
               </button>
           </div>
         </div>
