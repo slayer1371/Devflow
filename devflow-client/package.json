@@ -11,6 +11,7 @@
   "dependencies": {
     "@devflow/shared": "file:../packages/shared",
     "@monaco-editor/react": "^4.7.0",
+    "@vercel/analytics": "^1.6.1",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.2",
