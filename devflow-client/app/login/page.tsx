@@ -57,6 +57,13 @@ export default function LoginPage() {
           <p className="text-[#00ff9d]/60 text-xs tracking-widest uppercase">Identify to proceed</p>
         </div>
 
+        {/* System Protocol Info */}
+        <div className="mb-6 p-3 border border-[#00ff9d]/10 bg-[#00ff9d]/[0.03] text-[11px] text-white/50 leading-relaxed space-y-1">
+          <p className="text-[#00ff9d]/70 font-bold uppercase tracking-wider text-[10px] mb-1.5">// System Protocol</p>
+          <p><span className="text-[#00ff9d]/50">→</span> New email? An account will be created automatically.</p>
+          <p><span className="text-[#00ff9d]/50">→</span> Returning user? Enter your existing access key to sign in.</p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="p-3 bg-red-900/20 border border-red-500/50 text-red-500 text-xs font-bold text-center tracking-wide">
