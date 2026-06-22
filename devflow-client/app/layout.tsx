@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 import { Providers } from "./providers";
 
@@ -35,6 +36,7 @@ export default function RootLayout({
             <div className="absolute bottom-0 left-0 translate-y-24 -translate-x-24 blur-[120px] opacity-20 w-[600px] h-[600px] rounded-full bg-secondary/30 pointer-events-none"></div>
         </div>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
